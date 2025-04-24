@@ -1,0 +1,351 @@
+-- Anti-AFK
+local vu = game:GetService("VirtualUser")
+game:GetService("Players").LocalPlayer.Idled:Connect(function()
+    vu:Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+    wait(1)
+    vu:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+end)
+
+-- Carrega a UI
+local OrionLib = loadstring(game:HttpGet('https://raw.githubusercontent.com/shlexware/Orion/main/source'))()
+
+local Window = OrionLib:MakeWindow({
+    Name = "Coffe Hub",
+    HidePremium = false,
+    SaveConfig = true,
+    ConfigFolder = "BFHub"
+})
+
+-- Função para coletar baús
+function CollectChests()
+    for _, v in pairs(game:GetDescendants()) do
+        if v:IsA("Part") and v.Name:lower():find("chest") then
+            game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = v.CFrame + Vector3.new(0, 3, 0)
+            wait(0.3)
+        end
+    end
+end
+
+-- Função para coletar frutas do chão
+function CollectFruits()
+    local Workspace = game:GetService("Workspace")
+    for _, obj in pairs(Workspace:GetDescendants()) do
+        if obj:IsA("Tool") and obj.Parent == Workspace and obj:FindFirstChild("Handle") then
+            game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = obj.Handle.CFrame + Vector3.new(0, 3, 0)
+            wait(0.5)
+        end
+    end
+end
+
+-- Auto detectar e coletar frutas
+_G.AutoFruit = false
+function MonitorFruits()
+    local Workspace = game:GetService("Workspace")
+    Workspace.DescendantAdded:Connect(function(obj)
+        if _G.AutoFruit and obj:IsA("Tool") and obj.Parent == Workspace and obj:FindFirstChild("Handle") then
+            OrionLib:MakeNotification({
+                Name = "Fruta Encontrada!",
+                Content = "Uma fruta spawnou! Indo buscar...",
+                Time = 5
+            })
+            wait(1)
+            game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = obj.Handle.CFrame + Vector3.new(0, 3, 0)
+        end
+    end)
+end
+
+-- Inicia o monitoramento de frutas
+MonitorFruits()
+
+-- Server Hop
+function HopServer()
+    local HttpService = game:GetService("HttpService")
+    local TeleportService = game:GetService("TeleportService")
+    local PlaceId = game.PlaceId
+    local cursor = ""
+
+    local function ListServers(cursor)
+        local url = "https://games.roblox.com/v1/games/"..PlaceId.."/servers/Public?limit=100"
+        if cursor ~= "" then url = url.."&cursor="..cursor end
+        local response = game:HttpGet(url)
+        return HttpService:JSONDecode(response)
+    end
+
+    local servers = ListServers(cursor)
+    for _, server in pairs(servers.data) do
+        if server.playing < server.maxPlayers then
+            TeleportService:TeleportToPlaceInstance(PlaceId, server.id, game.Players.LocalPlayer)
+            return
+        end
+    end
+end
+
+-- Auto Farm simples
+_G.AutoFarm = false
+function StartAutoFarm()
+    while _G.AutoFarm do
+        for _, v in pairs(game:GetService("Workspace").Enemies:GetChildren()) do
+            if v:FindFirstChild("HumanoidRootPart") and v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
+                game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = v.HumanoidRootPart.CFrame * CFrame.new(0, 5, 0)
+                wait(0.5)
+            end
+        end
+        wait(1)
+    end
+end
+
+-- Auto Stat Upgrade
+_G.AutoStat = false
+_G.StatType = "Melee"
+
+function AutoStats()
+    while _G.AutoStat do
+        local args = {
+            [1] = _G.StatType,
+            [2] = 1
+        }
+        game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("AddPoint", unpack(args))
+        wait(0.5)
+    end
+end
+
+-- Auto Skill (Z, X, C, V)
+_G.AutoZ = false
+_G.AutoX = false
+_G.AutoC = false
+_G.AutoV = false
+
+function AutoSkill()
+    spawn(function()
+        while wait(0.3) do
+            if _G.AutoZ then game:GetService("VirtualInputManager"):SendKeyEvent(true, "Z", false, game) end
+            if _G.AutoX then game:GetService("VirtualInputManager"):SendKeyEvent(true, "X", false, game) end
+            if _G.AutoC then game:GetService("VirtualInputManager"):SendKeyEvent(true, "C", false, game) end
+            if _G.AutoV then game:GetService("VirtualInputManager"):SendKeyEvent(true, "V", false, game) end
+        end
+    end)
+end
+AutoSkill()
+
+-- Auto Quest
+_G.AutoQuest = false
+_G.QuestTarget = ""
+
+function StartAutoQuest()
+    while _G.AutoQuest do
+        local args = {
+            [1] = "StartQuest",
+            [2] = _G.QuestTarget,
+            [3] = 1
+        }
+        game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer(unpack(args))
+        wait(1)
+    end
+end
+
+-- Auto Boss Farm
+_G.AutoBoss = false
+
+function FarmBosses()
+    while _G.AutoBoss do
+        for _, boss in pairs(game:GetService("Workspace").Enemies:GetChildren()) do
+            if boss:FindFirstChild("HumanoidRootPart") and boss.Humanoid.Health > 0 and boss.Name:find("Boss") then
+                game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = boss.HumanoidRootPart.CFrame * CFrame.new(0, 5, 0)
+                wait(0.3)
+            end
+        end
+        wait(1)
+    end
+end
+
+-- Girar Fruta
+_G.RotateFruit = false
+
+function RotateFruit()
+    spawn(function()
+        while _G.RotateFruit do
+            -- Acessa a fruta no inventário
+            local player = game.Players.LocalPlayer
+            local inventory = player.Backpack:GetChildren()
+
+            -- Procura por uma fruta no inventário
+            for _, item in pairs(inventory) do
+                if item:IsA("Tool") and item.Name == "BloxFruit" then
+                    -- Verifica se a fruta é válida e pode ser girada
+                    local args = {
+                        [1] = item
+                    }
+                    game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("RollFruit", unpack(args)) -- Gira a fruta
+                    OrionLib:MakeNotification({
+                        Name = "Fruta Girada!",
+                        Content = "A fruta foi girada com sucesso.",
+                        Time = 5
+                    })
+                    wait(5) -- Espera 5 segundos antes de girar outra fruta
+                end
+            end
+            wait(1)
+        end
+    end)
+end
+
+-- GUI Tabs
+local MainTab = Window:MakeTab({
+    Name = "Main",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+MainTab:AddButton({
+    Name = "Farm Baús",
+    Callback = function()
+        CollectChests()
+    end
+})
+
+MainTab:AddButton({
+    Name = "Coletar Frutas no Chão",
+    Callback = function()
+        CollectFruits()
+    end
+})
+
+MainTab:AddToggle({
+    Name = "Auto Coletar Frutas (Detecta Spawn)",
+    Default = false,
+    Save = true,
+    Flag = "AutoFruit",
+    Callback = function(Value)
+        _G.AutoFruit = Value
+    end
+})
+
+MainTab:AddButton({
+    Name = "Trocar de Servidor",
+    Callback = function()
+        HopServer()
+    end
+})
+
+MainTab:AddToggle({
+    Name = "Auto Farm NPCs",
+    Default = false,
+    Save = true,
+    Flag = "AutoFarm",
+    Callback = function(Value)
+        _G.AutoFarm = Value
+        if Value then
+            StartAutoFarm()
+        end
+    end
+})
+
+local QuestTab = Window:MakeTab({
+    Name = "Quests",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+QuestTab:AddTextbox({
+    Name = "Nome do NPC (ex: Bandit)",
+    Default = "",
+    TextDisappear = false,
+    Callback = function(Value)
+        _G.QuestTarget = Value
+    end
+})
+
+QuestTab:AddToggle({
+    Name = "Auto Quest",
+    Default = false,
+    Callback = function(Value)
+        _G.AutoQuest = Value
+        if Value then StartAutoQuest() end
+    end
+})
+
+local SkillTab = Window:MakeTab({
+    Name = "Skills",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+SkillTab:AddToggle({
+    Name = "Auto Z",
+    Default = false,
+    Callback = function(v) _G.AutoZ = v end
+})
+
+SkillTab:AddToggle({
+    Name = "Auto X",
+    Default = false,
+    Callback = function(v) _G.AutoX = v end
+})
+
+SkillTab:AddToggle({
+    Name = "Auto C",
+    Default = false,
+    Callback = function(v) _G.AutoC = v end
+})
+
+SkillTab:AddToggle({
+    Name = "Auto V",
+    Default = false,
+    Callback = function(v) _G.AutoV = v end
+})
+
+local StatTab = Window:MakeTab({
+    Name = "Stats",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+StatTab:AddDropdown({
+    Name = "Atributo",
+    Default = "Melee",
+    Options = {"Melee", "Defense", "Sword", "Gun", "Blox Fruit"},
+    Callback = function(v)
+        _G.StatType = v
+    end
+})
+
+StatTab:AddToggle({
+    Name = "Auto Upgrade",
+    Default = false,
+    Callback = function(v)
+        _G.AutoStat = v
+        if v then AutoStats() end
+    end
+})
+
+local BossTab = Window:MakeTab({
+    Name = "Boss Farm",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+BossTab:AddToggle({
+    Name = "Auto Farm Bosses",
+    Default = false,
+    Callback = function(v)
+        _G.AutoBoss = v
+        if v then FarmBosses() end
+    end
+})
+
+local FruitTab = Window:MakeTab({
+    Name = "Girar Fruta",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+FruitTab:AddToggle({
+    Name = "Ativar Giro de Fruta",
+    Default = false,
+    Callback = function(Value)
+        _G.RotateFruit = Value
+        if Value then
+            RotateFruit()  -- Chama a função para girar as frutas
+        end
+    end
+})
